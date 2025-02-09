@@ -8,9 +8,11 @@ import (
 
 func main() {
 	fmt.Println()
-	_, err := db.Connect()
+	database, err := db.Connect()
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Println("Connected to database")
+	
+	db.RunMigrations(database)
+	fmt.Println("successful to run migrations!")
 }
