@@ -3,6 +3,7 @@ package models
 type User struct {
 	ID       int    `gorm:"primaryKey"`
 	Username string `gorm:"size:64;not null;unique"`
+	Password string `gorm:"size:64;not null"` 
 }
 
 type Blog struct {
