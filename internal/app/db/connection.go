@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"lotus-task/internal/app/utils"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -22,7 +21,7 @@ func Connect() ( error) {
 		return errors.New(">ERR db.Connect(). Failed to connect to database")
 	}
 
-	// Assign the global variable DB |   TODO: can be changed in the future
+	// Assign the global variable DB 
 	DB = db
 	return nil
 }

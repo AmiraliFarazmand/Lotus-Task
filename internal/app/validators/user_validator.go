@@ -14,7 +14,8 @@ func checkUniquenessUsername(db *gorm.DB, username string) error {
 	}
 	return nil
 }
-func ValidateUsername(username string, db *gorm.DB) error {
+
+func validateUsername(username string, db *gorm.DB) error {
 	if len(username) < 3 || len(username) > 64 {
 		return errors.New("username must be between 3 and 64 characters")
 	}
@@ -24,12 +25,22 @@ func ValidateUsername(username string, db *gorm.DB) error {
 	return nil
 }
 
-func ValidatePassword(password string) error {
+func validatePassword(password string) error {
 	if len(password) < 8 {
 		return errors.New("password must be at least 8 characters long")
 	}
 	if len(password) > 64 {
 		return errors.New("password must be less than 64 characters long")
+	}
+	return nil
+}
+
+func ValidateUsernamePassword(username, password string, db *gorm.DB) error {
+	if err := validateUsername(username, db); err != nil {
+		return err
+	}
+	if err := validatePassword(password); err != nil {
+		return err
 	}
 	return nil
 }
