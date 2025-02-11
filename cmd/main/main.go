@@ -4,6 +4,7 @@ import (
 	"log"
 	"lotus-task/internal/app/controllers"
 	"lotus-task/internal/app/db"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,6 +20,7 @@ func init() {
 func main() {
 	r := gin.Default()
 	r.POST("/signup", controllers.Signup)
+	r.POST("/login", controllers.Login)
 	r.Run() // listen and serve on 0.0.0.0:8080
 
-} 
+}
