@@ -4,6 +4,7 @@ import (
 	"log"
 	"lotus-task/internal/app/controllers"
 	"lotus-task/internal/app/db"
+	"lotus-task/internal/app/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +22,7 @@ func main() {
 	r := gin.Default()
 	r.POST("/signup", controllers.Signup)
 	r.POST("/login", controllers.Login)
+	r.GET("/validate", middleware.RequireAuth, controllers.ValidateIsAuthenticated)
 	r.Run() // listen and serve on 0.0.0.0:8080
 
 }
