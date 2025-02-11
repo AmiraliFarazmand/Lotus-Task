@@ -1,18 +1,29 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"lotus-task/internal/app/db"
+	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	fmt.Println()
-	database, err := db.Connect()
+
+func init() {
+	err := db.Connect()
 	if err != nil {
 		log.Println(err)
 	}
-	
-	db.RunMigrations(database)
-	fmt.Println("successful to run migrations!")
+	db.RunMigrations(db.DB)
+	log.Println("successful to run migrations!")
+}
+
+
+func main() {
+
+	r := gin.Default()
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "PPPPPp",
+		})
+	})
+	r.Run() // listen and serve on 0.0.0.0:8080
 }
