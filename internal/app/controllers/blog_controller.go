@@ -3,6 +3,7 @@ package controllers
 import (
 	"lotus-task/internal/app/db"
 	"lotus-task/internal/app/models"
+	"lotus-task/internal/app/validators"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,8 +41,16 @@ func CreateBlog(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("user") // in middleware we already check if user exists!
+	if validators.ValidateBlog(body.Body, db.DB) != nil {
+		if c.Bind(&body) != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid body for blog",
+			})
+			return
+		}
+	}
 
+	user, _ := c.Get("user") // in middleware we already check if user exists!
 	db.DB.Create(&models.Blog{
 		Body:   body.Body,
 		UserID: user.(models.User).ID,

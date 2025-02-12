@@ -7,15 +7,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func ReadEnv(lookupStr string) (string, error) {
+func init() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		return "", errors.New("error occured on loading .env file")
+		panic("error occured on loading .env file")
 	}
+}
+
+
+func ReadEnv(lookupStr string) (string, error) {
 
 	found := os.Getenv(lookupStr)
 	if found == "" {
-		return  "", errors.New(lookupStr + "not found in environment variables")
+		return "", errors.New(lookupStr + "not found in environment variables")
 	}
 	return found, nil
 }
