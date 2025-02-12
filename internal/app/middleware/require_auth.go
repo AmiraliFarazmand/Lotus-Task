@@ -29,7 +29,6 @@ func RequireAuth(c *gin.Context) {
 		return []byte(secretKey), nil
 	})
 	if err != nil {
-		log.Fatal("mmmmmmmmmman\n", err)
 		log.Fatal(err)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

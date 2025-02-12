@@ -23,6 +23,9 @@ func main() {
 	r.POST("/signup", controllers.Signup)
 	r.POST("/login", controllers.Login)
 	r.GET("/validate", middleware.RequireAuth, controllers.ValidateIsAuthenticated)
+	r.GET("/blogs", controllers.ListBlogs)
+	r.GET("/blogs/:id", controllers.RetrieveBlog)
+	r.POST("/blogs", middleware.RequireAuth, controllers.CreateBlog)
 	r.Run() // listen and serve on 0.0.0.0:8080
 
 }
