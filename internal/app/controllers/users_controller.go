@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	"net/http"
 	"lotus-task/internal/app/db"
 	"lotus-task/internal/app/models"
 	"lotus-task/internal/app/utils"
 	"lotus-task/internal/app/validators"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,93 +13,92 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const tokenExpireTime int = 72 // expire time in hour
+
+type authRequest struct {
+	Username string
+	Password string
+}
+
+func createToken(userID uint) (string, error) {
+
+	// Create Token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": userID,
+		"exp": time.Now().Add(time.Hour * time.Duration(tokenExpireTime)).Unix(),
+	})
+	secretKey, err := utils.ReadEnv("SECRET_KEY")
+	if err != nil {
+		return "", err
+	}
+	tokenString, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
 func Signup(c *gin.Context) {
-	var body struct {
-		Username string
-		Password string
-	}
-	if c.Bind(&body) != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid JSON body",
-		})
-		return
-	}
-	if err := validators.ValidateUsernamePassword(body.Username, body.Password, db.DB); err != nil { //  validate username and password by our own logic
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	var body authRequest
+	// Validate format of request
+	if c.ShouldBindJSON(&body) != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid JSON body")
 		return
 	}
 
+	// Validate Username and Password of request body
+	if err := validators.ValidateUsernamePassword(body.Username, body.Password, db.DB); err != nil { 
+		utils.RespondWithError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Hash the password
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed to hash Password ",
-		})
+		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to hash password")
 		return
 	}
 
+	// Insert into DB
 	user := models.User{Username: body.Username, Password: string(hash)}
 	result := db.DB.Create(&user)
 	if result.Error != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed tocreate user",
-		})
+		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "user created"})
 }
 
 func Login(c *gin.Context) {
-	var body struct {
-		Username string
-		Password string
-	}
-
-	if c.Bind(&body) != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid JSON body",
-		})
+	var body authRequest
+	// Validate format of request
+	if c.ShouldBindJSON(&body) != nil {
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid JSON body")
 		return
 	}
+
 	var user models.User
 	db.DB.First(&user, "username = ?", body.Username)
 	if user.ID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "user not found",
-		})
+		utils.RespondWithError(c, http.StatusBadRequest, "User not found")
 		return
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid email or password",
-		})
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid username or password")
 		return
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
-		"exp": time.Now().Add(time.Hour * 72).Unix(),
-	})
-	secretKey, err := utils.ReadEnv("SECRET_KEY")
+	tokenString, err := createToken(uint(user.ID))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed to create token(env error)",
-		})
-		return
-	}
-	tokenString, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed to create token",
-		})
+		utils.RespondWithError(c, http.StatusInternalServerError, "Failed to create token")
 		return
 	}
 
+	// Set the token in a cookie
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("Authorization", tokenString, 3600*24, "", "", false, true)
+	c.SetCookie("Authorization", tokenString, 3600*tokenExpireTime, "", "", false, true)
 	c.JSON(http.StatusOK, gin.H{
 		"token": tokenString,
 	})
@@ -108,9 +107,8 @@ func Login(c *gin.Context) {
 func ValidateIsAuthenticated(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":  "Unauthorized",
-		})
+		utils.RespondWithError(c, http.StatusUnauthorized, "UnAuthorized user")
+		return
 	}
 
 	username := user.(models.User).Username
