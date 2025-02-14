@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func RunMigrations(db *gorm.DB) {
+func runMigrations(db *gorm.DB) {
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Blog{},

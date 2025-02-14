@@ -11,7 +11,7 @@ import (
 
 var DB *gorm.DB
 
-func Connect() error {
+func connect() error {
 	dsn, err := utils.ReadEnv("DSN")
 	if err != nil {
 		return fmt.Errorf(">ERR db.Connect().%w", err)
