@@ -13,6 +13,23 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func validateClaims(claims jwt.MapClaims) (models.User, bool) {
+	// check if the token is expired
+	if float64(time.Now().Unix()) > claims["exp"].(float64) {
+		return models.User{}, false
+	}
+
+	// find expected User
+	var user models.User
+	db.DB.First(&user, claims["sub"])
+
+	// check if the user exists
+	if user.ID == 0 {
+		return models.User{}, false
+	}
+	return user, true
+}
+
 func RequireAuth(c *gin.Context) {
 	// get the cookie off the request
 	tokenString, err := c.Cookie("Authorization")
@@ -20,6 +37,7 @@ func RequireAuth(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+
 	// parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -34,25 +52,17 @@ func RequireAuth(c *gin.Context) {
 		return
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		// check if the token is expired
-		if float64(time.Now().Unix()) > claims["exp"].(float64) {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		// find expected User
-		var user models.User
-		db.DB.First(&user, claims["sub"])
-		// check if the user exists
-		if user.ID == 0 {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		// set the user to the context
-		c.Set("user", user)
-	} else {
+	claims, claimsOk := token.Claims.(jwt.MapClaims)
+	if !claimsOk {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	user, ok := validateClaims(claims)
+	if !ok {
+		c.AbortWithStatus(http.StatusUnauthorized)
+	}
+
+	// set the user to the context
+	c.Set("user", user)
 	c.Next()
 }
